@@ -1,54 +1,35 @@
 <template>
-  <v-container>
-    <h1>Articles</h1>
+  <v-card>
     <div v-if="isLoading">Loading players...</div>
     <div v-else>
-      <table class="table">
-        <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Answers</th>
-          <th>Points</th>
-          <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody>
-          <tr v-for="article in articles" :key="article.article_id">
-            <td>{{ article.article_id }}</td>
-            <td>{{ article.name }}</td>
-            <td>{{ article.identifier }}</td>
-            <td>{{ article.tariff_price }}</td>
-            <td>Action buttons</td>
-          </tr>
-        </tbody>
-      </table>
-      <ul class="pagination pagination-md justify-content-center text-center">
-        <li class="page-item"
-            :class="page === 1 ? 'disabled' : ''"
-        >
-          <a
-              class="page-link"
-              @click="prevPage"
-          >
-            Previous
-          </a>
-        </li>
-        <li class="page-link" style="background-color: inherit">
-          {{ page }} of {{ lastPage }}
-        </li>
-        <li class="page-item"
-            :class="page === lastPage ? 'disabled' : ''"
-        >
-          <a class="page-link"
-             @click="nextPage"
-          >
-            Next
-          </a>
-        </li>
-      </ul>
+      <v-card-title>
+        Nutrition
+        <v-spacer></v-spacer>
+        <v-text-field
+            v-model="search"
+            append-icon="mdi-magnify"
+            label="Search"
+            single-line
+            hide-details
+        ></v-text-field>
+      </v-card-title>
+      <v-data-table
+          :headers="headers"
+          :items="articles"
+          :options="options"
+          :server-items-length="totalItems"
+          :loading="isLoading"
+          class="elevation-1"
+          :items-per-page="itemsPerPage"
+          item-key="identifier"
+          @update:page="updatePagination"
+          @update:items-per-page="updateItemsPerPage"
+          :search="search"
+          :custom-filter="filterByName"
+      >
+      </v-data-table>
     </div>
-  </v-container>
+  </v-card>
 </template>
 
 <script>
@@ -56,54 +37,86 @@ import axios from 'axios'
 import {API_BASE_URL} from '../config'
 
 export default {
-  name:    "Articles",
+  name:     "Articles",
   data() {
     return {
-      isLoading: true,
-      page:      1,
-      lastPage:  1,
-      perPage:   10,
-      articles:  {}
+      headers:      [
+        {
+          text:     'Article Name',
+          align:    'start',
+          sortable: true,
+          value:    'name',
+        },
+        {text: 'EAN', value: 'identifier'},
+        {text: 'ID', value: 'article_id'},
+        {text: 'Tariff Price', value: 'tariff_price'},
+      ],
+      search:       '',
+      isLoading:    true,
+      totalItems:   0,
+      page:         1,
+      lastPage:     1,
+      itemsPerPage: 10,
+      articles:     [],
+      options:      {},
+      navTitle:     "Articles"
     }
   },
   mounted() {
-    this.fetchData()
+    this.fetchData();
+    this.setNavTitle();
   },
-  methods: {
+  methods:  {
     fetchData() {
       this.response = axios.get(API_BASE_URL + '/articles?page=' + this.page)
           .then(({data}) => {
+            this.items = data.data;
             this.lastPage = data.last_page;
+            this.totalItems = data.total;
             this.articles = data.data;
+            this.page = data.current_page;
+            this.itemsPerPage = data.per_page;
+            this.sortBy = null;
+            this.sortDesc = null;
           })
           .catch((err) => {
             console.log(err)
           });
 
-      // this.articles = this.response.data.data
       this.isLoading = false
     },
-
-    nextPage() {
-      this.loading = true
-      this.page++;
-      window.scrollTo({top: 0, behavior: 'smooth'})
+    updatePagination(page) {
+      this.page = page;
       this.fetchData();
     },
-
-    prevPage() {
-      this.loading = true
-      this.page--;
-      window.scrollTo({top: 0, behavior: 'smooth'})
+    updateItemsPerPage(itemsPerPage) {
+      this.itemsPerPage = itemsPerPage;
+      // todo add items per page to API query
       this.fetchData();
+    },
+    filterByName(value, search, item) {
+      console.log(value + " " + search + " " + item)
+      return value != null &&
+          search != null &&
+          typeof value === 'string' &&
+          value.toString().toLocaleUpperCase().indexOf(search) !== -1
+    },
+    setNavTitle() {
+      this.$emit('nav-title', this.navTitle);
     }
   },
-  computed: {
-    isLastPage () {
-      let length = this.data.last_page;
-      return length / this.perPage
-    }
-  }
+  computed: {},
+  watch:    {
+    search() {
+      //this.filterByName(value, search, item);
+    },
+    // options: {
+    //   handler() {
+    //     this.fetchData()
+    //   },
+    //   deep: true,
+    // },
+  },
 }
 </script>
 
