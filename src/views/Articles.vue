@@ -3,14 +3,15 @@
     <div v-if="isLoading">Loading players...</div>
     <div v-else>
       <v-card-title>
-        Nutrition
+        Search
         <v-spacer></v-spacer>
         <v-text-field
             v-model="search"
             append-icon="mdi-magnify"
-            label="Search"
+            label="eq. 2055516 91H VRE"
             single-line
             hide-details
+            @keyup.enter="filterBySearch"
         ></v-text-field>
       </v-card-title>
       <v-data-table
@@ -25,7 +26,6 @@
           @update:page="updatePagination"
           @update:items-per-page="updateItemsPerPage"
           :search="search"
-          :custom-filter="filterByName"
       >
       </v-data-table>
     </div>
@@ -45,11 +45,11 @@ export default {
           text:     'Article Name',
           align:    'start',
           sortable: true,
-          value:    'name',
+          value:    'description.description',
         },
         {text: 'EAN', value: 'identifier'},
         {text: 'ID', value: 'article_id'},
-        {text: 'Tariff Price', value: 'tariff_price'},
+        {text: 'Tariff Price', value: 'tariff_price', },
       ],
       search:       '',
       isLoading:    true,
@@ -68,14 +68,14 @@ export default {
   },
   methods:  {
     fetchData() {
-      this.response = axios.get(API_BASE_URL + '/articles?page=' + this.page)
+      this.response = axios.get(API_BASE_URL + '/articles?page=' + this.page + '&items_per_page=' + this.itemsPerPage + '&family=10081000&status=10011001&search=' + this.search)
           .then(({data}) => {
             this.items = data.data;
-            this.lastPage = data.last_page;
-            this.totalItems = data.total;
+            this.lastPage = data.meta.last_page;
+            this.totalItems = data.meta.total;
             this.articles = data.data;
-            this.page = data.current_page;
-            this.itemsPerPage = data.per_page;
+            this.page = data.meta.current_page;
+            this.itemsPerPage = parseInt(data.meta.per_page);
             this.sortBy = null;
             this.sortDesc = null;
           })
@@ -94,12 +94,8 @@ export default {
       // todo add items per page to API query
       this.fetchData();
     },
-    filterByName(value, search, item) {
-      console.log(value + " " + search + " " + item)
-      return value != null &&
-          search != null &&
-          typeof value === 'string' &&
-          value.toString().toLocaleUpperCase().indexOf(search) !== -1
+    filterBySearch() {
+      this.fetchData();
     },
     setNavTitle() {
       this.$emit('nav-title', this.navTitle);
@@ -107,15 +103,7 @@ export default {
   },
   computed: {},
   watch:    {
-    search() {
-      //this.filterByName(value, search, item);
-    },
-    // options: {
-    //   handler() {
-    //     this.fetchData()
-    //   },
-    //   deep: true,
-    // },
+
   },
 }
 </script>

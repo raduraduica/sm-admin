@@ -1,1 +1,1 @@
-export const API_BASE_URL = 'http://admv.test/api';
+export const API_BASE_URL = 'http://speedmarkt-api.test/api';
